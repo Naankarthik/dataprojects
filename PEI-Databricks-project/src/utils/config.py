@@ -1,7 +1,7 @@
 
-CUSTOMERS_PATH = "/FileStore/ecommerce/customers.csv"
-PRODUCTS_PATH = "/FileStore/ecommerce/products.csv"
-ORDERS_PATH = "/FileStore/ecommerce/orders.json"
+CUSTOMERS_PATH = "/Workspace/Users/s.karthikeyan1100@gmail.com/dataprojects/PEI-Databricks-project/source_data/Customer.xlsx"
+PRODUCTS_PATH = "/Workspace/Users/s.karthikeyan1100@gmail.com/dataprojects/PEI-Databricks-project/source_data/Products.csv"
+ORDERS_PATH = "/Workspace/Users/s.karthikeyan1100@gmail.com/dataprojects/PEI-Databricks-project/source_data/Orders.json"
 
 RAW_CUSTOMERS = "raw_customers"
 RAW_PRODUCTS = "raw_products"

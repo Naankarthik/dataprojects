@@ -1,9 +1,9 @@
-
-from pyspark.sql.functions import sum,year
+from pyspark.sql.functions import sum, year, to_date
 
 def build_profit_aggregation(df):
-
-    df = df.withColumn("year",year("order_date"))
+    # Use to_date with correct format and tolerate malformed input
+    df = df.withColumn("order_date_parsed", to_date("order_date", "d/M/yyyy"))
+    df = df.withColumn("year", year("order_date_parsed"))
 
     return (
         df.groupBy(

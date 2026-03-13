@@ -1,13 +1,14 @@
-
-from pyspark.sql.functions import col
 from src.utils.logger import logger
 
 def validate_dataframe(df):
 
-    if df.rdd.isEmpty():
-        raise ValueError("Dataset empty")
+    try:
 
-    corrupt = df.filter(col("_corrupt_record").isNotNull())
+        # Check if dataset empty
+        if df.limit(1).count() == 0:
+            raise ValueError("Dataset is empty")
 
-    if corrupt.count() > 0:
-        logger.warning("Corrupt records detected")
+    except Exception as e:
+
+        logger.error(f"Data validation failed {e}")
+        raise

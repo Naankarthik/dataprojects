@@ -1,0 +1,595 @@
+PEI Databricks Project Documentation
+1. Project Overview
+
+The PEI-Databricks-project is a Databricks-based data engineering pipeline designed to ingest raw business data, transform it into enriched analytical datasets, and generate profit-focused aggregated outputs. The project follows a layered approach with reusable Python modules for loading, transformations, utilities, and notebook-based orchestration.
+
+The pipeline reads source files in multiple formats such as Excel, CSV, and JSON, loads them into raw Delta tables, enriches them into curated datasets, and builds an aggregation table for reporting and analysis.
+
+This project is structured to be modular, readable, and extensible. The notebooks primarily act as orchestration layers, while reusable logic is implemented under the src folder.
+
+2. Project Objectives
+
+The main objectives of this project are:
+
+ingest raw source files into Delta tables
+
+standardize and clean incoming datasets
+
+enrich transactional order data with customer and product dimensions
+
+calculate profit-based analytical outputs
+
+maintain reusable code through utility and transformation modules
+
+support Delta Lake optimization and maintainability patterns
+
+3. High-Level Architecture
+
+The project follows this flow:
+
+Source Files
+
+Customer Excel file
+
+Products CSV file
+
+Orders JSON file
+
+Raw Layer
+
+raw_customers
+
+raw_products
+
+raw_orders
+
+Enriched Layer
+
+enriched_customers
+
+enriched_products
+
+enriched_orders
+
+Aggregation Layer
+
+agg_profit
+
+The workflow is orchestrated through Databricks notebooks, while the reusable business logic is kept inside Python modules.
+
+4. Repository Structure
+
+A simplified version of the repository structure is shown below:
+
+PEI-Databricks-project/
+│
+├── notebooks/
+│   ├── 01_ingestion/
+│   │   ├── ingest_customers.py
+│   │   ├── ingest_products.py
+│   │   └── ingest_orders.py
+│   ├── 02_enrichment/
+│   │   ├── enrich_customers.py
+│   │   ├── enrich_products.py
+│   │   └── build_enriched_orders.py
+│   ├── 03_aggregation/
+│   │   └── profit_aggregations.py
+│   └── 05_maintenance/
+│       └── delta_optimization_job.py
+│
+├── src/
+│   ├── loaders/
+│   │   ├── data_loader.py
+│   │   └── ingestion_runner.py
+│   ├── transformations/
+│   │   ├── customer_transformations.py
+│   │   ├── product_transformations.py
+│   │   ├── order_transformations.py
+│   │   └── aggregation_transformations.py
+│   └── utils/
+│       ├── bootstrap.py
+│       ├── column_utils.py
+│       ├── config.py
+│       ├── delta_utils.py
+│       ├── delta_optimization.py
+│       ├── error_handler.py
+│       ├── logger.py
+│       └── spark_optimizations.py
+│
+├── tests/
+│   └── pytest_cases.py
+│
+└── source_data/
+    ├── Customer.xlsx
+    ├── Products.csv
+    └── Orders.json
+5. Source Data Description
+5.1 Customer Data
+
+The customer data is sourced from an Excel file. It contains customer-related information such as:
+
+customer identifier
+
+customer name
+
+segment
+
+country
+
+city
+
+state
+
+phone or other descriptive attributes
+
+This file is read using Pandas and converted to Spark DataFrame because Excel is not natively handled by standard Spark readers without additional connectors.
+
+5.2 Product Data
+
+The product data is sourced from a CSV file. It contains:
+
+product identifier
+
+product name
+
+category
+
+sub-category
+
+This file is ingested directly using the Spark CSV reader.
+
+5.3 Order Data
+
+The order data is sourced from a JSON file. It represents transaction-level business data and includes:
+
+order identifier
+
+customer identifier
+
+product identifier
+
+order date
+
+sales
+
+quantity
+
+discount
+
+profit
+
+This is the main transactional dataset used for fact-style enrichment.
+
+6. Pipeline Flow
+
+The pipeline runs in the following stages.
+
+6.1 Ingestion Stage
+
+Raw source files are loaded into Delta tables:
+
+Excel customer data → raw_customers
+
+CSV product data → raw_products
+
+JSON order data → raw_orders
+
+The ingestion stage performs:
+
+file read
+
+column cleanup
+
+basic validation
+
+raw table persistence in Delta format
+
+6.2 Enrichment Stage
+
+The raw datasets are transformed into enriched dimension and fact-like tables:
+
+raw_customers → enriched_customers
+
+raw_products → enriched_products
+
+raw_orders + enriched dimensions → enriched_orders
+
+This stage includes:
+
+deduplication
+
+column standardization
+
+customer and product dimension cleanup
+
+joining transactional orders with dimensions
+
+parsing order dates
+
+profit rounding and enrichment
+
+6.3 Aggregation Stage
+
+The enriched orders table is used to build a reporting dataset:
+
+enriched_orders → agg_profit
+
+The aggregation logic groups profit by:
+
+year
+
+category
+
+sub_category
+
+customer_name
+
+This output is useful for analytical reporting and profit trend analysis.
+
+6.4 Maintenance Stage
+
+Delta maintenance operations are run on selected Delta tables. These operations may include:
+
+OPTIMIZE
+
+VACUUM
+
+For liquid-clustered tables, clustering is handled at table creation time and maintenance should use standard OPTIMIZE instead of ZORDER.
+
+7. Module-by-Module Documentation
+7.1 src/loaders/data_loader.py
+
+This module is responsible for generic file ingestion.
+
+Responsibilities
+
+load data from Excel, CSV, and JSON
+
+convert source data into Spark DataFrames
+
+clean column names
+
+validate data before returning
+
+Key Notes
+
+Excel is loaded using Pandas and then converted to Spark
+
+CSV and JSON are loaded directly using Spark readers
+
+column cleanup is applied consistently
+
+validation ensures the dataset is not empty
+
+exceptions should be logged and re-raised
+
+Recommended Final Pattern
+
+The loader should accept spark as an argument rather than creating a SparkSession at module level. This improves reusability and testability.
+
+7.2 src/loaders/ingestion_runner.py
+
+This module acts as a reusable ingestion wrapper.
+
+Responsibilities
+
+call the generic data loader
+
+write the resulting DataFrame to a Delta table
+
+reduce repeated code in ingestion notebooks
+
+Benefit
+
+This prevents duplication across ingestion notebooks and centralizes ingestion logic.
+
+7.3 src/transformations/customer_transformations.py
+
+This module contains customer enrichment logic.
+
+Responsibilities
+
+select relevant customer columns
+
+clean customer name values if needed
+
+deduplicate by customer_id
+
+Output
+
+Creates a curated customer dimension for joining with orders.
+
+7.4 src/transformations/product_transformations.py
+
+This module contains product enrichment logic.
+
+Responsibilities
+
+select relevant product columns
+
+standardize the sub_category column
+
+deduplicate by product_id
+
+Output
+
+Creates a curated product dimension for joining with orders.
+
+Important Note
+
+If raw columns are cleaned during ingestion, then sub-category becomes sub_category. Downstream transformation logic should use the cleaned column name.
+
+7.5 src/transformations/order_transformations.py
+
+This module builds the enriched orders dataset.
+
+Responsibilities
+
+join orders with customer dimension
+
+join orders with product dimension
+
+apply business transformations such as rounding profit
+
+optionally repartition if needed
+
+Design Notes
+
+Broadcast joins are appropriate when customer and product dimensions are small. Hardcoded repartition logic should be avoided inside the transformation function unless there is a clear business need.
+
+7.6 src/transformations/aggregation_transformations.py
+
+This module contains aggregation logic for reporting.
+
+Responsibilities
+
+derive year from parsed order date
+
+group data by reporting dimensions
+
+calculate total profit
+
+Output
+
+Generates the agg_profit table for reporting and analysis.
+
+7.7 src/utils/config.py
+
+This module stores reusable configuration values.
+
+Responsibilities
+
+store source file paths
+
+store raw, enriched, and aggregate table names
+
+centralize config used across notebooks and modules
+
+Recommendation
+
+Use environment-driven base paths instead of hardcoded workspace-specific locations.
+
+7.8 src/utils/column_utils.py
+
+This module standardizes column names.
+
+Responsibilities
+
+trim spaces
+
+lowercase column names
+
+replace special characters with underscores
+
+ensure a consistent schema style
+
+Recommendation
+
+Duplicate cleaned names should be handled safely, as multiple source columns may collapse into the same cleaned value.
+
+7.9 src/utils/error_handler.py
+
+This module validates incoming DataFrames.
+
+Responsibilities
+
+confirm DataFrame is not empty
+
+raise a business-friendly validation error if the dataset is empty
+
+Recommendation
+
+Validation should raise exceptions immediately instead of allowing downstream failures.
+
+7.10 src/utils/logger.py
+
+This module centralizes logging.
+
+Responsibilities
+
+provide structured logging across modules
+
+improve observability during ingestion and transformation failures
+
+7.11 src/utils/delta_utils.py
+
+This module centralizes Delta merge logic.
+
+Responsibilities
+
+merge source DataFrame into existing Delta table
+
+create a Delta table if it does not already exist
+
+reduce repeated merge patterns across notebooks
+
+Benefit
+
+This avoids repeating the same table existence and merge logic in multiple places.
+
+7.12 src/utils/delta_optimization.py
+
+This module contains Delta maintenance logic.
+
+Responsibilities
+
+run OPTIMIZE
+
+run VACUUM
+
+support maintenance for multiple configured tables
+
+Note
+
+If a table uses liquid clustering, it should be optimized with normal OPTIMIZE, not with ZORDER.
+
+7.13 src/utils/spark_optimizations.py
+
+This module stores Spark runtime optimization helpers.
+
+Responsibilities
+
+enable adaptive query execution
+
+configure shuffle partitions
+
+enable Delta optimize write and auto compact
+
+support reusable runtime tuning
+
+Benefit
+
+Keeps performance-related Spark settings out of notebooks and makes them reusable.
+
+8. Notebook Documentation
+8.1 Ingestion Notebooks
+ingest_customers.py
+
+Reads the customer Excel file and loads it into raw_customers.
+
+ingest_products.py
+
+Reads the product CSV file and loads it into raw_products.
+
+ingest_orders.py
+
+Reads the orders JSON file and loads it into raw_orders.
+
+These notebooks should ideally call a common ingestion runner instead of repeating the same pattern.
+
+8.2 Enrichment Notebooks
+enrich_customers.py
+
+Builds the curated customer dimension from raw customers and writes to enriched_customers.
+
+enrich_products.py
+
+Builds the curated product dimension from raw products and writes to enriched_products.
+
+build_enriched_orders.py
+
+Builds the enriched orders dataset by joining raw orders with curated dimensions and writing to enriched_orders.
+
+For tables where liquid clustering is needed, clustering should be applied during creation.
+
+8.3 Aggregation Notebook
+profit_aggregations.py
+
+Reads enriched_orders, applies aggregation logic, and writes the final reporting table agg_profit.
+
+If liquid clustering is used, clustering for this table should also be defined during creation.
+
+8.4 Maintenance Notebook
+delta_optimization_job.py
+
+Performs Delta maintenance tasks such as:
+
+OPTIMIZE
+
+VACUUM
+
+This notebook should only use standard optimization logic for liquid-clustered tables.
+
+9. Tables in the Project
+Raw Tables
+
+raw_customers
+
+raw_products
+
+raw_orders
+
+Enriched Tables
+
+enriched_customers
+
+enriched_products
+
+enriched_orders
+
+Aggregated Table
+
+agg_profit
+
+10. Recommended Liquid Clustering Strategy
+
+For this project, liquid clustering is most beneficial on larger, query-heavy analytical tables.
+
+Recommended Tables for Liquid Clustering
+enriched_orders
+
+Suggested clustering keys:
+
+customer_id
+
+product_id
+
+order_date_parsed
+
+Reason:
+This table is likely to be queried by order date, customer, and product dimensions.
+
+agg_profit
+
+Suggested clustering keys:
+
+year
+
+category
+
+sub_category
+
+Reason:
+This table is used for reporting and profit analysis by year and category-level dimensions.
+
+Tables Not Recommended for Liquid Clustering
+
+raw_customers
+
+raw_products
+
+enriched_customers
+
+enriched_products
+
+These tables are usually dimension-sized and smaller, so clustering would likely add complexity without much benefit.
+
+11. Delta Optimization Strategy
+
+A good maintenance strategy for this repo is:
+
+Daily
+
+OPTIMIZE on frequently queried Delta tables
+
+Weekly
+
+VACUUM with safe retention
+
+Safe Retention
+
+Use:
+
+RETAIN 168 HOURS
+
+This preserves a safer recovery window and avoids issues with time travel and rollback.

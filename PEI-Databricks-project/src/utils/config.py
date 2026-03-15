@@ -1,4 +1,4 @@
-
+PROJECT_ROOT = "/Workspace/Users/s.karthikeyan1100@gmail.com/dataprojects/PEI-Databricks-project"
 CUSTOMERS_PATH = "/Workspace/Users/s.karthikeyan1100@gmail.com/dataprojects/PEI-Databricks-project/source_data/Customer.xlsx"
 PRODUCTS_PATH = "/Workspace/Users/s.karthikeyan1100@gmail.com/dataprojects/PEI-Databricks-project/source_data/Products.csv"
 ORDERS_PATH = "/Workspace/Users/s.karthikeyan1100@gmail.com/dataprojects/PEI-Databricks-project/source_data/Orders.json"
